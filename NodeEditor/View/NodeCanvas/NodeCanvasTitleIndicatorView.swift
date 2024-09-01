@@ -7,20 +7,29 @@
 
 import SwiftUI
 
+#if canImport(UIKit)
+import UIKit
+#elseif canImport(AppKit)
+import AppKit
+#endif
+
 struct NodeCanvasTitleIndicatorView<ChildView: View>: View {
-    
-    @State var title : String = ""
-    @Binding var indicating : Bool
+    @State var title: String = ""
+    @Binding var indicating: Bool
     
     var childView: ChildView
+    
     var body: some View {
         ZStack(alignment: .top) {
             childView
-                .overlay(RoundedRectangle(cornerRadius: 16).stroke(indicating ? Color.init(UIColor.quaternaryLabel) : Color.clear, lineWidth: indicating ? 8 : 0))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(indicating ? Color.platformQuaternaryLabel : Color.clear, lineWidth: indicating ? 8 : 0)
+                )
                 .mask(RoundedRectangle(cornerRadius: 16))
-
-            ZStack{
-                Text("\(title)")
+            
+            ZStack {
+                Text(title)
                     .font(.body.monospaced())
                     .padding()
             }

@@ -6,7 +6,9 @@
 //
 
 import Foundation
+#if canImport(UIKit)
 import UIKit
+#endif
 
 extension CGPoint: Hashable {
     public func hash(into hasher: inout Hasher) {

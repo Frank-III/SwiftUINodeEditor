@@ -12,7 +12,7 @@ struct MoreNavigationView: View {
     @EnvironmentObject var environment : Environment
     
     var body: some View {
-        NavigationView {
+        NavigationStack {
             List {
                 Section(content: {
                     Toggle("Use Context Menu On Nodes", isOn: $environment.useContextMenuOnNodes)

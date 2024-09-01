@@ -9,6 +9,21 @@ import Foundation
 import SwiftUI
 import SpriteKit
 
+func loadImage(named: String) -> Any {
+    #if canImport(UIKit)
+    return UIImage(named: named)!
+    #elseif os(macOS)
+    if let image = NSImage(named: named) {
+        return image
+    } else if let path = Bundle.main.path(forResource: named, ofType: "png"),
+              let image = NSImage(contentsOfFile: path) {
+        print(path)
+        return image
+    }
+    return NSImage()
+    #endif
+}
+
 class NodePageDataProviderChapterZero : NodePageDataProvider
 {
     func modifyCanvas(nodePageData : NodePageData) {
@@ -88,9 +103,10 @@ class NodePageDataProviderChapterZero : NodePageDataProvider
     func modifyLiveScene(nodePageData : NodePageData) {
         let newScene = SKScene(fileNamed: "FlappyBird") ?? SKScene(size: .init(width: 375, height: 667))
         
-        let birdAtlas = SKTextureAtlas(dictionary: ["downflap": UIImage(named: "yellowbird-downflap.png") as Any,
-                                                    "midflap": UIImage(named: "yellowbird-midflap.png") as Any,
-                                                    "upflap": UIImage(named: "yellowbird-upflap.png") as Any])
+        
+        let birdAtlas = SKTextureAtlas(dictionary: ["downflap": loadImage(named:"yellowbird-downflap.png"),
+                                                    "midflap": loadImage(named:"yellowbird-midflap.png"),
+                                                    "upflap": loadImage(named:"yellowbird-upflap.png")])
         
         let birdFlyFrames: [SKTexture] = [
             birdAtlas.textureNamed("downflap"),

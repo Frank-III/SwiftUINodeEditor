@@ -17,12 +17,12 @@ struct ToggleButtonView: View {
             self.state.toggle()
         } label: {
             icon
-                .foregroundColor(state ? .init(UIColor.systemBackground) : .accentColor)
+//                .foregroundColor(state ? .platformSystemBackground: .accentColor)
                 .padding(.all, 8)
-                .background(
-                    RoundedRectangle(cornerRadius: 8)
-                        .foregroundColor(state ? .accentColor : .clear)
-                )
+//                .background(
+//                    RoundedRectangle(cornerRadius: 8)
+//                        .foregroundColor(state ? .accentColor : .clear)
+//                )
                 .animation(.easeInOut, value: state)
         }
 

@@ -14,19 +14,19 @@ struct NodePortView: View {
     @State var holdingKnot : Bool = false
     @State var holdingConnection : NodePortConnectionData? = nil
     
-    var textView : some View {
+    var textView: some View {
         Text("\(nodePortData.name)")
             .lineLimit(1)
             .font(.footnote.monospaced())
     }
     
-    var circleView : some View {
+    var circleView: some View {
         nodePortData.icon()
             .foregroundColor(nodePortData.color())
             .scaleEffect(holdingKnot ? 1.5 : 1)
             .frame(width: 8, height: 8, alignment: .center)
             .padding(.all, 8)
-            .background(GeometryReader(content: { proxy in
+            .background(GeometryReader { proxy in
                 Color.clear
                     .onAppear {
                         nodePortData.canvasRect = proxy.frame(in: .named("canvas"))
@@ -34,75 +34,95 @@ struct NodePortView: View {
                     .onChange(of: proxy.frame(in: .named("canvas"))) { portKnotFrame in
                         nodePortData.canvasRect = portKnotFrame
                     }
-            }))
+            })
             .contentShape(Rectangle())
             .gesture(
                 DragGesture(minimumDistance: 0, coordinateSpace: .named("canvas"))
                     .onChanged({ value in
-                        if !holdingKnot {
-                            holdingKnot = true
-                            
-                            if case .can = nodePortData.canConnect() {
-                                // can connect
-                                let newConnection : NodePortConnectionData
-                                
-                                // new connection with basic setup
-                                if self.nodePortData.direction == .output {
-                                    newConnection = NodePortConnectionData(startPort: self.nodePortData, endPort: nil)
-                                } else {
-                                    newConnection = NodePortConnectionData(startPort: nil, endPort: self.nodePortData)
-                                }
-                                nodeCanvasData.pendingConnections.append(newConnection)
-                                holdingConnection = newConnection
-                            } else if let existingConnection = nodePortData.connections.first {
-                                // cannot connect, but if there is an existing line, disconnect that line
-                                existingConnection.isolate()
-                                existingConnection.disconnect(portDirection: nodePortData.direction)
-                                nodeCanvasData.pendingConnections.append(existingConnection)
-                                holdingConnection = existingConnection
-                            }
-                        }
-                        
-                        if let holdingConnection = holdingConnection,
-                           let pendingDirection = holdingConnection.getPendingPortDirection
-                        {
-                            if pendingDirection == .input {
-                                holdingConnection.endPosIfPortNull = value.location
-                            } else {
-                                holdingConnection.startPosIfPortNull = value.location
-                            }
-                        }
+                        handleGestureChange(value)
                     })
                     .onEnded({ value in
-                        holdingKnot = false
-                        
-                        if let pendingDirection = holdingConnection?.getPendingPortDirection,
-                           let portToConnectTo = nodeCanvasData.nodes.flatMap({ nodeData in
-                               pendingDirection == .input ? nodeData.inPorts : nodeData.outPorts
-                           }).filter({ nodePortData in
-                               if case .can = nodePortData.canConnectTo(anotherPort: self.nodePortData) {
-                                   return true
-                               }
-                               return false
-                           }).filter({ nodePortData in
-                               nodePortData.canvasRect.contains(value.location)
-                           }).first {
-                            // if knot can be connected
-                            portToConnectTo.connectTo(anotherPort: self.nodePortData)
-                            
-                        } else {
-                            
-                            // if no knot to connect to
-                            holdingConnection?.disconnect()
-                        }
-                        
-                        // remove pending connection
-                        nodeCanvasData.pendingConnections.removeAll { connection in
-                            connection == holdingConnection
-                        }
-                        holdingConnection = nil
+                        handleGestureEnd(value)
                     })
             )
+//            NO WORKING AT ALL
+//            #if os(macOS)
+//            .onHover { over in
+//                if over {
+//                    holdingKnot = true
+//                } else {
+//                    holdingKnot = false
+//                }
+//            }
+//            #endif
+    }
+    
+    func handleGestureChange(_ value: DragGesture.Value) {
+        if !holdingKnot {
+            holdingKnot = true
+            
+            if case .can = nodePortData.canConnect() {
+                let newConnection = initiateConnection()
+                nodeCanvasData.pendingConnections.append(newConnection)
+                holdingConnection = newConnection
+            } else if let existingConnection = nodePortData.connections.first {
+                existingConnection.isolate()
+                existingConnection.disconnect(portDirection: nodePortData.direction)
+                nodeCanvasData.pendingConnections.append(existingConnection)
+                holdingConnection = existingConnection
+            }
+        }
+        
+        if let holdingConnection = holdingConnection,
+           let pendingDirection = holdingConnection.getPendingPortDirection {
+            updatePendingConnection(pendingDirection, value)
+        }
+    }
+    
+    func handleGestureEnd(_ value: DragGesture.Value) {
+        holdingKnot = false
+        
+        if let holdingConnection = holdingConnection,
+           let pendingDirection = holdingConnection.getPendingPortDirection,
+           let portToConnectTo = determinePortToConnectTo(pendingDirection, value) {
+            portToConnectTo.connectTo(anotherPort: self.nodePortData)
+        } else {
+            holdingConnection?.disconnect()
+        }
+        
+        nodeCanvasData.pendingConnections.removeAll { connection in
+            connection == holdingConnection
+        }
+        holdingConnection = nil
+    }
+    
+    func initiateConnection() -> NodePortConnectionData {
+        if self.nodePortData.direction == .output {
+            return NodePortConnectionData(startPort: self.nodePortData, endPort: nil)
+        } else {
+            return NodePortConnectionData(startPort: nil, endPort: self.nodePortData)
+        }
+    }
+    
+    func updatePendingConnection(_ pendingDirection: NodePortDirection, _ value: DragGesture.Value) {
+        if pendingDirection == .input {
+            holdingConnection?.endPosIfPortNull = value.location
+        } else {
+            holdingConnection?.startPosIfPortNull = value.location
+        }
+    }
+    
+    func determinePortToConnectTo(_ pendingDirection: NodePortDirection, _ value: DragGesture.Value) -> NodePortData? {
+        nodeCanvasData.nodes.flatMap({ nodeData in
+            pendingDirection == .input ? nodeData.inPorts : nodeData.outPorts
+        }).filter({ nodePortData in
+            if case .can = nodePortData.canConnectTo(anotherPort: self.nodePortData) {
+                return true
+            }
+            return false
+        }).filter({ nodePortData in
+            nodePortData.canvasRect.contains(value.location)
+        }).first
     }
     
     var body: some View {

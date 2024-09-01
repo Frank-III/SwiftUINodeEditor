@@ -48,44 +48,67 @@ struct NodeAddSelectionView: View {
     }
     
     var body: some View {
-        NavigationView {
-            List{
-                ForEach(nodeListFor(category: nodeCategory)) { nodeData in
-                    Button {
-                        showPopover = false
-                        _ = nodeCanvasData.addNode(newNodeType: type(of: nodeData), position: nodePosition)
-                    } label: {
-                        HStack {
-                            Text("\(nodeData.title)")
-                                .font(.body.monospaced())
-                            Spacer()
-                            NodeView(demoMode: true, nodeData: nodeData)
-                                .padding()
-                        }
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(PlainButtonStyle())
-
-                }
-            }
-            .onAppear(perform: {
-                nodeCategory = nodeCategoryList[safe: 0] ?? ""
-            })
-            .listStyle(PlainListStyle())
-            .toolbar {
-                ToolbarItem(placement: .principal) {
-                    Picker("Category", selection: $nodeCategory) {
-                        ForEach(nodeCategoryList) { category in
-                            Text(category).tag(category)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                }
-            }
-            .navigationTitle("\(nodeCategory)")
+#if canImport(UIKit)
+        navigationView
+#else
+        VStack {
+            categoryPicker
+            nodeList
         }
         .frame(minWidth: 300, idealWidth: 380, maxWidth: nil,
                minHeight: 360, idealHeight: 540, maxHeight: nil,
                alignment: .top)
+#endif
+    }
+    
+    var navigationView: some View {
+        NavigationStack {
+            nodeList
+                .navigationTitle("\(nodeCategory)")
+                .toolbar {
+                    ToolbarItem(placement: .principal) {
+                        categoryPicker
+                    }
+                }
+        }
+        .frame(minWidth: 300, idealWidth: 380, maxWidth: nil,
+               minHeight: 360, idealHeight: 540, maxHeight: nil,
+               alignment: .top)
+    }
+    
+    var categoryPicker: some View {
+        Picker("Category", selection: $nodeCategory) {
+            ForEach(nodeCategoryList, id: \.self) { category in
+                Text(category).tag(category)
+            }
+        }
+        .pickerStyle(.segmented)
+    }
+    
+    var nodeList: some View {
+        List {
+            ForEach(nodeListFor(category: nodeCategory)) { nodeData in
+                Button {
+                    showPopover = false
+                    _ = nodeCanvasData.addNode(newNodeType: type(of: nodeData), position: nodePosition)
+                } label: {
+                    HStack {
+                        Text("\(nodeData.title)")
+                            .font(.body.monospaced())
+                        Spacer()
+                        NodeView(demoMode: true, nodeData: nodeData)
+                            .padding()
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(PlainButtonStyle())
+            }
+        }
+        .listStyle(PlainListStyle())
+        .onAppear {
+            if nodeCategory.isEmpty {
+                nodeCategory = nodeCategoryList[safe: 0] ?? ""
+            }
+        }
     }
 }

@@ -6,7 +6,53 @@
 //
 
 import SwiftUI
+#if canImport(UIKit)
 import UIKit
+#else
+import AppKit
+#endif
+
+#if canImport(UIKit)
+func drawPath() -> UIBezierPath{
+    return UIBezierPath()
+}
+#else
+func drawPath() -> NSBezierPath {
+    return NSBezierPath()
+}
+
+extension NSBezierPath {
+    func addCurve(to: NSPoint, controlPoint1: NSPoint, controlPoint2: NSPoint) {
+        self.curve(to:to, controlPoint1: controlPoint1, controlPoint2: controlPoint2)
+    }
+}
+
+struct RightClickDetector: NSViewRepresentable {
+    var onRightClick: (CGPoint) -> Void
+    
+    func makeNSView(context: Context) -> some NSView {
+        let view = RightClickableNSView(frame: .zero)
+        view.onRightClick = onRightClick
+        return view
+    }
+
+    func updateNSView(_ nsView: NSViewType, context: Context) { }
+    
+    class RightClickableNSView: NSView {
+        var onRightClick: ((CGPoint) -> Void)?
+        override var acceptsFirstResponder: Bool { true }
+        override func mouseDown(with event: NSEvent) {
+            self.window?.makeFirstResponder(self)
+        }
+
+        override func rightMouseDown(with event: NSEvent) {
+            print("right click")
+            let location = self.convert(event.locationInWindow, from: nil)
+            onRightClick?(location)
+        }
+    }
+}
+#endif
 
 struct NodeCanvasView: View {
     
@@ -24,7 +70,7 @@ struct NodeCanvasView: View {
                         
                         NodeCanvasAddNodePointView(popoverPosition: $popoverPosition, showPopover: $showAddNodePopover)
                             .position(popoverPosition)
-                        
+
                         Color.clear.frame(width: nodeCanvasData.canvasSize.width, height: nodeCanvasData.canvasSize.height, alignment: .center)
                             .contentShape(Rectangle())
                             .onTapGesture {
@@ -49,26 +95,25 @@ struct NodeCanvasView: View {
                         Canvas(opaque: false, colorMode: .extendedLinear, rendersAsynchronously: true) { context, size in
                             
                             // stable lines
-                            let stablePathForDataFlow = UIBezierPath()
-                            nodeCanvasData.nodes.flatMap({ nodeData in
+                            let stablePathForDataFlow = drawPath()
+                            let nodePortData = nodeCanvasData.nodes.flatMap({ nodeData in
                                 nodeData.outDataPorts.flatMap { nodePortData in
                                     nodePortData.connections
                                 }
                             })
-                            .forEach { nodePortConnectionData in
+                            
+                            nodePortData.forEach { nodePortConnectionData in
                                 let startPos = nodePortConnectionData.startPos
                                 let endPos = nodePortConnectionData.endPos
                                 let distance = abs(startPos.x - endPos.x)
                                 let controlPoint1 = startPos + CGPoint.init(x: distance, y: 0)
                                 let controlPoint2 = endPos - CGPoint.init(x: distance, y: 0)
                                 stablePathForDataFlow.move(to: startPos)
-                                stablePathForDataFlow.addCurve(to: endPos,
-                                              controlPoint1: controlPoint1,
-                                              controlPoint2: controlPoint2)
+                                stablePathForDataFlow.addCurve(to: endPos, controlPoint1:controlPoint1, controlPoint2: controlPoint2)
                             }
                             context.stroke(.init(stablePathForDataFlow.cgPath), with: .color(.green), lineWidth: 4)
                             
-                            let stablePathForControlFlow = UIBezierPath()
+                            let stablePathForControlFlow = drawPath()
                             nodeCanvasData.nodes.flatMap({ nodeData in
                                 nodeData.outControlPorts.flatMap { nodePortData in
                                     nodePortData.connections
@@ -91,7 +136,7 @@ struct NodeCanvasView: View {
                             // pending lines
                             nodeCanvasData.pendingConnections
                             .forEach { nodePortConnectionData in
-                                let unstablePath = UIBezierPath()
+                                let unstablePath = drawPath()
                                 let startPos = nodePortConnectionData.startPos
                                 let endPos = nodePortConnectionData.endPos
                                 let distance = abs(startPos.x - endPos.x)
@@ -163,23 +208,23 @@ struct NodeCanvasView: View {
                             VStack(alignment: .leading) {
                                 Text("Canvas Size \(proxy.size.width) × \(proxy.size.height)")
                                     .font(.subheadline.monospaced())
-                                    .foregroundColor(.init(uiColor: UIColor.secondaryLabel))
+                                    .foregroundColor(Color.platformSecondaryLabel)
                                 Text("Node Count \(nodeCanvasData.nodes.count)")
                                     .font(.subheadline.monospaced())
-                                    .foregroundColor(.init(uiColor: UIColor.secondaryLabel))
+                                    .foregroundColor(Color.platformSecondaryLabel)
                                 Text("Pending Connection Count \(nodeCanvasData.pendingConnections.count)")
                                     .font(.subheadline.monospaced())
-                                    .foregroundColor(.init(uiColor: UIColor.secondaryLabel))
+                                    .foregroundColor(Color.platformSecondaryLabel)
                             }
                             .padding()
                     }))
                 }
             }
             
-//            NodeCanvasMinimapView()
+            NodeCanvasMinimapView()
         }
         
-        .background(Color(UIColor.systemGroupedBackground))
+        .background(Color.platformSystemGroupedBackground)
         .frame(minWidth: 300,
                idealWidth: 500,
                maxWidth: .infinity,

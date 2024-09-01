@@ -6,7 +6,9 @@
 //
 
 import Foundation
+#if canImport(UIKit)
 import UIKit
+#endif
 import Combine
 import SwiftUI
 
@@ -143,10 +145,10 @@ class NodeControlPortData : NodePortData {
         }
         if let anotherPort = anotherPort as? NodeControlPortData {
             
-                // cannot connect same port
-                if (self == anotherPort) {
-                    return .cannot("cannot connect itself")
-                }
+            // cannot connect same port
+            if (self == anotherPort) {
+                return .cannot("cannot connect itself")
+            }
             // cannot connect same direction
             if (self.direction == anotherPort.direction) {
                 return .cannot("cannot connect ports on the same side, has to be one out, one in")

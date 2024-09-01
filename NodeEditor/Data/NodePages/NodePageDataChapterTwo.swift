@@ -77,10 +77,10 @@ class NodePageDataProviderChapterTwo : NodePageDataProvider
     func modifyLiveScene(nodePageData: NodePageData) {
         let newScene = SKScene(fileNamed: "FlappyBird") ?? SKScene(size: .init(width: 375, height: 667))
         
-        let birdAtlas = SKTextureAtlas(dictionary: ["downflap": UIImage(named: "yellowbird-downflap.png") as Any,
-                                                    "midflap": UIImage(named: "yellowbird-midflap.png") as Any,
-                                                    "upflap": UIImage(named: "yellowbird-upflap.png") as Any])
-        
+        let birdAtlas = SKTextureAtlas(dictionary: ["downflap": loadImage(named:"yellowbird-downflap.png"),
+                                                    "midflap": loadImage(named:"yellowbird-midflap.png"),
+                                                    "upflap": loadImage(named:"yellowbird-upflap.png")])
+
         let birdFlyFrames: [SKTexture] = [
             birdAtlas.textureNamed("downflap"),
             birdAtlas.textureNamed("midflap"),

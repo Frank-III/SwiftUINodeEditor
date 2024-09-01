@@ -6,7 +6,10 @@
 //
 
 import SwiftUI
+
+#if canImport(UIKit)
 import UIKit
+#endif
 
 struct NodeView: View, Identifiable {
     var id: UUID = UUID()
@@ -106,7 +109,9 @@ struct NodeView: View, Identifiable {
         }
         .padding(.all, 8)
         .background(
-            Color.init(uiColor: (environment.enableBlurEffectOnNodes ? UIColor.clear : UIColor.tertiarySystemGroupedBackground))
+            Group {
+                environment.enableBlurEffectOnNodes ? Color.clear : Color.tertiarySystemGroupedBackground
+            }
                 .contentShape(RoundedRectangle(cornerRadius: 8))
                 .gesture(DragGesture(minimumDistance: 0, coordinateSpace: .named("canvas"))
                     .onChanged { value in
@@ -128,29 +133,29 @@ struct NodeView: View, Identifiable {
         .mask {
             RoundedRectangle(cornerRadius: 8)
         }
-        .conditionalModifier(!demoMode && environment.useContextMenuOnNodes, transform: { view in
-            view.contextMenu {
-                if let usage = type(of: nodeData).getDefaultUsage(), !usage.isEmpty {
-                    Text("\(type(of: nodeData).getDefaultUsage())")
-                    Divider()
-                }
-                if environment.debugMode {
-                    Text("Position X \(nodeData.canvasPosition.x) Y \(nodeData.canvasPosition.y)")
-                    Divider()
-                }
-                Button(role: .destructive) {
-                    nodeCanvasData.deleteNode(node: nodeData)
-                } label: {
-                    Label {
-                        Text("Delete")
-                    } icon: {
-                        Image(systemName: "xmark")
-                    }
-
-                }
-
-            }
-        })
+//        .conditionalModifier(!demoMode && environment.useContextMenuOnNodes, transform: { view in
+//            view.contextMenu {
+//                if !type(of: nodeData).getDefaultUsage().isEmpty  {
+//                    Text("\(type(of: nodeData).getDefaultUsage())")
+//                    Divider()
+//                }
+//                if environment.debugMode {
+//                    Text("Position X \(nodeData.canvasPosition.x) Y \(nodeData.canvasPosition.y)")
+//                    Divider()
+//                }
+//                Button(role: .destructive) {
+//                    nodeCanvasData.deleteNode(node: nodeData)
+//                } label: {
+//                    Label {
+//                        Text("Delete")
+//                    } icon: {
+//                        Image(systemName: "xmark")
+//                    }
+//
+//                }
+//
+//            }
+//        })
         .overlay(
             RoundedRectangle(cornerRadius: 8)
                 .strokeBorder(Color.orange, lineWidth: holding ? 4 : 0)
@@ -165,5 +170,4 @@ struct NodeView: View, Identifiable {
         .animation(.easeInOut, value: holding)
         .animation(.easeInOut, value: nodeData.canvasPosition)
     }
-    
 }
